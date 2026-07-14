@@ -1,0 +1,13 @@
+10.0.0.1 - - [10/Jul/2026:09:00:00 +0000] "GET /index.html HTTP/1.1" 200 512 "-" "Mozilla/5.0 (Macintosh)"
+10.0.0.2 - - [10/Jul/2026:09:05:00 +0000] "GET /api/v1/claims HTTP/1.1" 200 2048 "-" "curl/8.0.1"
+10.0.0.2 - - [10/Jul/2026:10:00:00 +0000] "POST /api/v1/claims HTTP/1.1" 201 128 "-" "curl/8.0.1"
+10.0.0.3 - - [11/Jul/2026:11:00:00 +0000] "GET /api/v1/users HTTP/1.1" 500 64 "-" "Mozilla/5.0 (Windows)"
+10.0.0.3 - - [11/Jul/2026:11:00:05 +0000] "GET /api/v1/users HTTP/1.1" 500 64 "-" "Mozilla/5.0 (Windows)"
+10.0.0.1 - - [11/Jul/2026:11:30:00 +0000] "GET /health HTTP/1.1" 200 16 "-" "kube-probe/1.27"
+10.0.0.4 - - [11/Jul/2026:12:00:00 +0000] "DELETE /api/v1/claims/9 HTTP/1.1" 403 32 "https://admin.example.com/" "PostmanRuntime/7.32.0"
+10.0.0.5 - - [12/Jul/2026:08:00:00 +0000] "GET /static/app.js HTTP/1.1" 304 0 "https://example.com/" "Mozilla/5.0 (iPhone)"
+10.0.0.5 - - [12/Jul/2026:08:00:01 +0000] "GET /static/app.css HTTP/1.1" 200 4096 "https://example.com/" "Mozilla/5.0 (iPhone)"
+10.0.0.2 - - [12/Jul/2026:09:00:00 +0000] "GET /api/v1/claims?id=1 HTTP/1.1" 502 22 "-" "curl/8.0.1"
+10.0.0.6 - - [12/Jul/2026:09:30:00 +0000] "HEAD / HTTP/1.1" 200 0 "-" "UptimeBot/2.1"
+10.0.0.2 - - [12/Jul/2026:10:15:00 +0000] "GET /api/v1/claims HTTP/1.1" 504 18 "-" "python-requests/2.31.0"
+

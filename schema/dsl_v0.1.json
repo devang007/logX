@@ -1,0 +1,108 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "LogLingo DSL v0.1",
+  "description": "Frozen v0.1 grammar for NL->log-query translation (see PLAN.md section 2).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["action"],
+  "properties": {
+    "action": {
+      "enum": ["show", "filter_show", "count", "top", "abstain"]
+    },
+    "source": {
+      "enum": ["nginx_access", "nginx_error", "auto"]
+    },
+    "filters": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["field", "op", "value"],
+        "properties": {
+          "field": {
+            "enum": ["ip", "ts", "method", "path", "status", "bytes", "referer", "ua", "level", "pid", "msg", "client", "request"]
+          },
+          "op": {
+            "enum": ["eq", "ne", "gte", "lte", "contains", "regex"]
+          },
+          "value": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "group_by": {
+      "enum": ["ip", "ts", "method", "path", "status", "bytes", "referer", "ua", "level", "pid", "msg", "client", "request"]
+    },
+    "top_k": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1000
+    },
+    "time": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["last"],
+          "properties": {
+            "last": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]*[mhd]$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["from", "to"],
+          "properties": {
+            "from": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}"
+            },
+            "to": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}"
+            }
+          }
+        }
+      ]
+    },
+    "limit": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10000
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"action": {"const": "abstain"}}},
+      "then": {"maxProperties": 1}
+    },
+    {
+      "if": {"properties": {"action": {"const": "top"}}},
+      "then": {"required": ["group_by"]},
+      "else": {"not": {"required": ["top_k"]}}
+    },
+    {
+      "if": {"properties": {"source": {"const": "nginx_access"}}, "required": ["source"]},
+      "then": {
+        "properties": {
+          "filters": {"items": {"properties": {"field": {"enum": ["ip", "ts", "method", "path", "status", "bytes", "referer", "ua"]}}}},
+          "group_by": {"enum": ["ip", "ts", "method", "path", "status", "bytes", "referer", "ua"]}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"source": {"const": "nginx_error"}}, "required": ["source"]},
+      "then": {
+        "properties": {
+          "filters": {"items": {"properties": {"field": {"enum": ["ts", "level", "pid", "msg", "client", "request"]}}}},
+          "group_by": {"enum": ["ts", "level", "pid", "msg", "client", "request"]}
+        }
+      }
+    }
+  ]
+}

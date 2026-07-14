@@ -1,0 +1,208 @@
+.TH LOGX 1 "July 2026" "logx 0.1.0" "User Commands"
+.SH NAME
+logx \- query nginx logs in plain English
+.SH SYNOPSIS
+.B logx
+.BI \-q " QUERY"
+.RB [ \-src
+.IR FILE ]
+.RB [ \-\-dsl | \-\-cmd ]
+.RB [ \-x ]
+.RB [ \-Q ]
+.RI [ options ]
+.br
+.IB "producer " |
+.B logx
+.BI \-q " QUERY"
+.SH DESCRIPTION
+.B logx
+translates a natural-language question into a small, schema-validated JSON
+DSL using a local 15M-parameter seq2seq model (no network, no data egress),
+then compiles that DSL into a read-only
+.BR awk (1)
+pipeline and runs it over an nginx access or error log.
+.PP
+The result rows are written to
+.IR stdout .
+The DSL translation is echoed to
+.I stderr
+(one line, prefixed
+.BR "logx:" )
+so you can always see how your question was understood without polluting
+piped output. Suppress it with
+.BR \-Q .
+.PP
+Input is chosen in this order: an explicit
+.BI \-src " FILE"
+(gzip-compressed
+.B .gz
+files are handled transparently); piped
+.I stdin
+when no file is given (e.g.
+.BR "tail \-n 5000 access.log | logx ..." );
+otherwise the standard nginx locations
+.I /var/log/nginx/access.log
+and
+.IR /var/log/nginx/error.log .
+.SH OPTIONS
+.TP
+.BI \-q ", " \-\-query " QUERY"
+The question to ask. May also be given as a bare positional argument.
+.TP
+.BI \-src ", " \-\-src " FILE"
+Log file to query.
+.B \-
+means stdin explicitly.
+.TP
+.B \-\-dsl
+Print the canonical DSL JSON to stdout and exit without executing.
+Useful for scripting and for auditing the translation.
+.TP
+.B \-\-cmd
+Print the equivalent shell pipeline to stdout and exit without executing.
+.TP
+.BR \-x ", " \-\-explain
+Additionally print the model confidence and the compiled pipeline to stderr.
+.TP
+.BR \-Q ", " \-\-quiet
+Suppress the DSL echo on stderr.
+.TP
+.BI \-\-conf\-threshold " N"
+Mean token-logprob gate. Translations scoring below
+.I N
+are refused (exit 2). Default \-1.0 (loose).
+.TP
+.BI \-\-model\-dir " DIR"
+Use a different trained model directory.
+.TP
+.BI \-\-timeout " SECONDS"
+Pipeline timeout in file mode (default 30). Stream mode has no timeout.
+.TP
+.B \-\-manual
+Open this manual.
+.TP
+.BR \-\-version ", " \-\-help
+.SH SUPPORTED QUERIES
+Four actions over nginx access and error logs:
+.BR show / filter
+(print matching lines),
+.B count
+(optionally grouped by a field), and
+.B top
+(top-K values of a field). Filters support eq/ne/gte/lte/contains/regex on
+fields such as ip, status, path, method, bytes, referer, user-agent (access)
+and level, pid, client, message (error). Time windows: relative
+.RB ( "last 15 minutes/hours/days" )
+or absolute ISO ranges. Questions outside this scope make the model emit
+.B abstain
+and logx exits with status 2 rather than guessing.
+.SH EXAMPLES
+Top talkers in a rotated log:
+.PP
+.nf
+.RS
+logx \-q "top 5 ips" \-src /var/log/nginx/access.log.2.gz
+.RE
+.fi
+.PP
+Compose with standard tools \(em only the last hour of a busy log:
+.PP
+.nf
+.RS
+tail \-n 100000 access.log | logx \-q "how many 502s"
+.RE
+.fi
+.PP
+Watch matching lines live (show/filter only \(em see LIMITATIONS):
+.PP
+.nf
+.RS
+tail \-f access.log | logx \-q "show POST requests with status 500"
+.RE
+.fi
+.PP
+Audit before you trust \(em print the DSL or the pipeline instead of running:
+.PP
+.nf
+.RS
+logx \-\-dsl \-q "count 404s in the last 2 hours"
+logx \-\-cmd \-q "top 10 paths by requests" \-src access.log
+.RE
+.fi
+.SH EXIT STATUS
+.TP
+.B 0
+Success.
+.TP
+.B 1
+Usage or environment error (bad flags, missing file, missing model).
+.TP
+.B 2
+Abstain: the question is out of scope, or confidence fell below the gate.
+Nothing was executed.
+.TP
+.B 3
+The model produced invalid DSL (rare, ~2%). Nothing was executed.
+.TP
+.B 4
+The pipeline itself failed (I/O error, timeout).
+.SH SAFETY
+Defense in depth; every layer must pass before anything runs:
+.IP \(bu 3
+The DSL is canonicalized and schema-validated first; low-confidence and
+.B abstain
+translations stop with exit 2.
+.IP \(bu 3
+Execution never touches a shell. The pipeline is a chain of argv vectors
+restricted to an allowlist of read-only binaries (awk, sort, zcat, ...).
+.IP \(bu 3
+Filter values never enter awk program text \(em they are passed as
+.B awk \-v
+variables, so log contents and query values cannot inject code.
+.IP \(bu 3
+The model runs fully offline; log data never leaves the machine.
+.SH ENVIRONMENT
+.TP
+.B LOGX_HOME
+Install root (set by the launcher; override to relocate).
+.TP
+.B LOGX_MODEL_DIR
+Model directory override, same as
+.BR \-\-model\-dir .
+.TP
+.B LOGX_CONF_THRESHOLD
+Default for
+.BR \-\-conf\-threshold .
+.SH FILES
+.TP
+.I ~/.local/lib/logx/
+Default install root: model weights, schema, code, private venv.
+.TP
+.I /var/log/nginx/{access,error}.log
+Default query targets when no \-src is given and stdin is a terminal.
+.SH LIMITATIONS
+.IP \(bu 3
+nginx combined access-log and standard error-log formats only.
+.IP \(bu 3
+.B count
+and
+.B top
+aggregate at end-of-input, so they need finite input \(em they will not
+produce output under
+.BR "tail \-f" .
+Live streaming works for show/filter, best when logx writes directly to a
+terminal.
+.IP \(bu 3
+Time filters compare wall-clock timestamps; timezone offsets are ignored.
+.IP \(bu 3
+The translation is a model prediction (~90% exact-match). For anything that
+matters, glance at the echoed DSL or use
+.BR \-\-dsl / \-\-cmd
+first.
+.IP \(bu 3
+Each invocation loads the model (a few seconds). A resident daemon mode is
+planned.
+.SH SEE ALSO
+.BR awk (1),
+.BR tail (1),
+.BR grep (1)
