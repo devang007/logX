@@ -97,10 +97,12 @@ else
     cp -R "$MODEL_DIR" "$LOGX_HOME/model"
   fi
   cp "$REPO/man/logx.1" "$LOGX_HOME/man/"
-  echo "-> creating venv (downloads torch — a few GB, one time)"
+  echo "-> creating venv (downloads CPU-only torch — ~200 MB, one time)"
   "$PYTHON" -m venv "$LOGX_HOME/venv"
   "$LOGX_HOME/venv/bin/pip" install --quiet --upgrade pip
-  "$LOGX_HOME/venv/bin/pip" install --quiet torch transformers sentencepiece jsonschema
+  # CPU-only torch wheel: ~200 MB vs the ~2-3 GB CUDA build. logx runs inference
+  # on CPU, so the GPU stack is dead weight. Non-torch packages resolve from PyPI.
+  "$LOGX_HOME/venv/bin/pip" install --quiet --extra-index-url https://download.pytorch.org/whl/cpu torch transformers sentencepiece jsonschema
 fi
 
 sed "s|@LOGX_HOME@|$LOGX_HOME|" "$REPO/bin/logx.in" > "$PREFIX/bin/logx"
