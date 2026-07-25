@@ -13,7 +13,28 @@ executor (note they use flat `import dsl_common`, so they'd need src/ on sys.pat
 
 from __future__ import annotations
 
+import json
+
 from commons import TaskSpec
+
+
+def canonical(text: str) -> str | None:
+    """Order-insensitive canonical form of a raw output, or None if unparseable.
+
+    Parses the JSON and re-serializes through the DSL canonicalizer (sorts the
+    AND-combined filters, canonical key order, drops defaults), so two outputs
+    that mean the same thing map to one string. Powers the harness's semantic EM.
+    """
+    try:
+        obj = json.loads(text)
+    except (json.JSONDecodeError, ValueError):
+        return None
+    try:
+        import logX.src.dsl_common as dsl_common
+        return dsl_common.to_target(obj)
+    except Exception:
+        return None
+
 
 SPEC = TaskSpec(
     name="logX",
@@ -25,4 +46,5 @@ SPEC = TaskSpec(
     max_source_len=64,
     max_target_len=128,
     acceptance_em=0.80,
+    canonical=canonical,
 )

@@ -36,6 +36,15 @@ FILTER_KEY_ORDER = ("field", "op", "value")
 DEFAULTS = {"top_k": 10, "limit": 100}
 
 
+def _filter_sort_key(f):
+    """Deterministic order for the filters list. Filters are AND-combined, so
+    their order never changes results — sorting makes the serialized target
+    canonical (two orderings of the same query produce one string)."""
+    if isinstance(f, dict):
+        return (str(f.get("field", "")), str(f.get("op", "")), str(f.get("value", "")))
+    return (str(f), "", "")
+
+
 class DSLValidationError(ValueError):
     """The DSL object does not conform to schema v0.1."""
 
@@ -75,6 +84,7 @@ def canonicalize(dsl: dict) -> dict:
                     {k: f[k] for k in FILTER_KEY_ORDER if k in f} if isinstance(f, dict) else f
                     for f in val
                 ]
+                val = sorted(val, key=_filter_sort_key)
         out[key] = val
     for key, val in dsl.items():
         if key not in KEY_ORDER and val is not None:
