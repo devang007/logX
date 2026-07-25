@@ -25,7 +25,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 TASK_PREFIX = "parse: "
 MAX_SOURCE_LEN = 64

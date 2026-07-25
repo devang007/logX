@@ -20,7 +20,7 @@ PREFIX="${PREFIX:-$HOME/.local}"
 MODE="copy"
 MODEL_DIR="$REPO/runs/poc/best"
 MODEL_URL=""
-MODEL_VERSION="v0.1.0"
+MODEL_VERSION="v0.2.0"
 MODEL_URL_DEFAULT="https://github.com/devang007/logX/releases/download/$MODEL_VERSION/logx-model-$MODEL_VERSION.zip"
 PYTHON="${PYTHON:-python3}"
 

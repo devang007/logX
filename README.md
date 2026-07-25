@@ -27,7 +27,7 @@ git clone https://github.com/devang007/logX && cd logX
 ```
 
 That's it. The installer copies everything to `~/.local/lib/logx`, creates a
-private venv, and downloads the released model weights (56 MB, sha256-verified
+private venv, and downloads the released model weights (58 MB, sha256-verified
 automatically). Make sure `~/.local/bin` is in your `PATH`.
 
 Other options:
@@ -68,7 +68,8 @@ nothing runs on a guess.
 
 ## Accuracy
 
-90.95% exact-match, 98.2% schema-valid on the validation set (n=2,364).
+95.3% exact-match / 99.1% schema-valid on the validation set (n=4,641), and
+94.2% / 98.8% on a held-out out-of-distribution set (n=4,775).
 Details, training recipe, and honest limitations: [MODEL_CARD.md](MODEL_CARD.md).
 The translation is a prediction — glance at the echoed DSL when it matters.
 
