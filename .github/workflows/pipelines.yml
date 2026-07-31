@@ -1,0 +1,28 @@
+# Gruntwork Pipelines workflow. Runs `terragrunt plan` on PRs and `terragrunt apply` on merge to master.
+# To upgrade Pipelines, update the @ref below. Docs: https://docs.gruntwork.io/2.0/docs/pipelines/concepts/overview
+
+name: Pipelines
+run-name: "[GWP]: ${{ github.event.commits[0].message || github.event.pull_request.title || 'No commit message' }}"
+on:
+  push:
+    branches:
+      - "master"
+    paths-ignore:
+      - ".github/**"
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+    paths-ignore:
+      - ".github/**"
+
+# Permissions to assume roles and create pull requests
+permissions:
+  id-token: write
+  contents: write
+  pull-requests: write
+
+jobs:
+  GruntworkPipelines:
+    uses: gruntwork-io/pipelines-workflows/.github/workflows/pipelines.yml@v4
